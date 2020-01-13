@@ -1,13 +1,13 @@
 package api
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/astaxie/beego/validation"
 	"github.com/gin-gonic/gin"
 	"github.com/simanchou/go-gin-example/models"
 	"github.com/simanchou/go-gin-example/pkg/e"
+	"github.com/simanchou/go-gin-example/pkg/logging"
 	"github.com/simanchou/go-gin-example/pkg/util"
 )
 
@@ -16,6 +16,7 @@ type auth struct {
 	Password string `valid:"Required;MaxSize(50)"`
 }
 
+// GetAuth get auth
 func GetAuth(c *gin.Context) {
 	username := c.Query("username")
 	password := c.Query("password")
@@ -41,7 +42,7 @@ func GetAuth(c *gin.Context) {
 		}
 	} else {
 		for _, err := range valid.Errors {
-			log.Println(err.Key, err.Message)
+			logging.Info(err.Key, err.Message)
 		}
 	}
 
