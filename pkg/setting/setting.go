@@ -5,65 +5,94 @@ import (
 	"time"
 
 	"github.com/go-ini/ini"
+	"github.com/simanchou/go-gin-example/pkg/logging"
 )
 
-var (
-	// Cfg conf var
-	Cfg *ini.File
-
-	// RunMode run mode
-	RunMode string
-
-	// HTTPPort HTTP port
-	HTTPPort int
-
-	// ReadTimeout read timeout
-	ReadTimeout time.Duration
-	// WriteTimeout write timeout
-	WriteTimeout time.Duration
-
-	// PageSize page size
-	PageSize int
-	// JwtSecret jwt secret
+//App app secction config item
+type App struct {
 	JwtSecret string
-)
+	PageSize  int
+	PrefixURL string
+
+	RuntimeRootPath string
+
+	ImageSavePath  string
+	ImageMaxSize   int
+	ImageAllowExts []string
+
+	ExportSavePath string
+	QrCodeSavePath string
+	FontSavePath   string
+
+	LogSavePath string
+	LogSavename string
+	LogFileExt  string
+	TimeFormat  string
+}
+
+//AppSetting app setting instance
+var AppSetting = &App{}
+
+//Server server secction config item
+type Server struct {
+	RunMode      string
+	HTTPPort     int
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
+}
+
+//ServerSetting server setting instance
+var ServerSetting = &Server{}
+
+//Database database secction config item
+type Database struct {
+	Type        string
+	User        string
+	Password    string
+	Host        string
+	Name        string
+	TablePrefix string
+}
+
+//DatabaseSetting database setting instance
+var DatabaseSetting = &Database{}
+
+//Redis redis secction config item
+type Redis struct {
+	Host        string
+	Password    string
+	MaxIdle     int
+	MaxActive   int
+	IdleTimeout time.Duration
+}
+
+//RedisSetting redis setting instance
+var RedisSetting = &Redis{}
+
+var cfg *ini.File
 
 func init() {
 	var err error
-	Cfg, err = ini.Load("conf/app.ini")
+	cfg, err = ini.Load("conf/app.ini")
 	if err != nil {
 		log.Fatalf("Fail to parse 'conf/app.ini': %v\n", err)
 	}
 
-	LoadBase()
-	LoadServer()
-	LoadApp()
+	mapTo("app", AppSetting)
+	mapTo("server", ServerSetting)
+	mapTo("database", DatabaseSetting)
+	mapTo("redis", RedisSetting)
+
+	AppSetting.ImageMaxSize = AppSetting.ImageMaxSize * 1024 * 1024
+	ServerSetting.ReadTimeout = ServerSetting.ReadTimeout * time.Second
+	ServerSetting.WriteTimeout = ServerSetting.WriteTimeout * time.Second
+	RedisSetting.IdleTimeout = RedisSetting.IdleTimeout * time.Second
+
 }
 
-// LoadBase load base
-func LoadBase() {
-	RunMode = Cfg.Section("").Key("RUN_MODE").MustString("debug")
-}
-
-// LoadServer load server
-func LoadServer() {
-	sec, err := Cfg.GetSection("server")
+func mapTo(section string, v interface{}) {
+	err := cfg.Section(section).MapTo(v)
 	if err != nil {
-		log.Fatalf("Fail to get setion 'server': %v\n", err)
+		logging.Fatal(section, err)
 	}
-
-	HTTPPort = sec.Key("HTTP_PORT").MustInt(8000)
-	ReadTimeout = time.Duration(sec.Key("READ_TIMEOUT").MustInt(60)) * time.Second
-	WriteTimeout = time.Duration(sec.Key("WRITE_TIME").MustInt(60)) * time.Second
-}
-
-// LoadApp load app
-func LoadApp() {
-	sec, err := Cfg.GetSection("app")
-	if err != nil {
-		log.Fatalf("Fail to get section 'app': %v\n", err)
-	}
-
-	JwtSecret = sec.Key("JWT_SECRET").MustString("!@#$%^!@#$%^125sdfg2")
-	PageSize = sec.Key("PAGE_SIZE").MustInt(10)
 }
